@@ -166,7 +166,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
 'WAIT_FOR_IVEC'({client, Data}, #state{type=remote, 
                                        cipher_info = #cipher_info{method=Method}
                                       }=State) 
-  when Method =:= default; Method =:= rc4 ->
+  when Method =:= rc4 ->
     ?MODULE:'WAIT_FOR_TARGET_INFO'({client, Data}, State);
 'WAIT_FOR_IVEC'({client, Data}, #state{
                   type=remote,
@@ -192,7 +192,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
 'WAIT_FOR_IVEC'({remote, Data}, #state{type=local, 
                                        cipher_info = #cipher_info{method=Method}
                                       }=State) 
-  when Method =:= default; Method =:= rc4 ->
+  when Method =:= rc4 ->
     ?MODULE:'WAIT_FOR_DATA'({remote, Data}, State);
 'WAIT_FOR_IVEC'({client, Data}, #state{
                   type=local, 

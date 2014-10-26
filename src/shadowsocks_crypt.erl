@@ -16,27 +16,10 @@
 %% Return the cipher information
 %% 
 %% @spec cipher_info(Method, Password::string()) -> 
-%%                       {default, EncTable::list(), DecTable::list()} |
 %%                       {Method, Key::binary(), IvEnc::binary(), IvDec::binanry()}
-%%      Method := default | rc4 | des_cfb
+%%      Method := rc4 | des_cfb
 %% @end
 %%--------------------------------------------------------------------
-init_cipher_info(default, Password) ->
-    <<Value:64/little-unsigned-integer, _:64/little-unsigned-integer>> 
-        = crypto:hash(md5,Password),
-    Init = lists:seq(0, 255),
-    EncTable = lists:foldl(
-                 fun(I, Acc) ->
-                         lists:sort(
-                           fun(X, Y) ->
-                                   Value rem (X + I) =< Value rem (Y + I)
-                           end, Acc) 
-                 end, Init, lists:seq(1,1023)),
-    ZipTable = lists:zip(Init, EncTable),
-    ZipDecTable = lists:keysort(1, [{N, M} || {M, N} <- ZipTable]),
-    DecTable = [M || {_, M} <- ZipDecTable],
-    #cipher_info{method=default, 
-                 table={list_to_tuple(EncTable), list_to_tuple(DecTable)}};
 init_cipher_info(Method, Password) ->
     {KeyLen, IvLen} = key_iv_len(Method),
     {Key, _} = evp_bytestokey(md5, Password, KeyLen, IvLen),
@@ -54,8 +37,6 @@ init_cipher_info(Method, Password) ->
 %%      Data := iolist() | binary()
 %% @end
 %%--------------------------------------------------------------------
-encode(#cipher_info{method=default, table={EncTable, _}}=CipherInfo, Data) ->
-    {CipherInfo, transform(EncTable, Data)};
 encode(#cipher_info{method=rc4, stream_enc_state=S}=CipherInfo, Data) ->
     {S1, EncData} = crypto:stream_encrypt(S, Data),
     {CipherInfo#cipher_info{stream_enc_state=S1}, EncData};
@@ -72,14 +53,11 @@ encode(#cipher_info{method=des_cfb, key=Key, encode_iv=Iv}=CipherInfo, Data) ->
 %% @doc 
 %% Decode function
 %% @spec decode(CipherInfo, Data) -> Data
-%%      CipherInfo := {default, EncTable::list(), DecTable::list()} |
 %%                    {Method, Key::binary(), Iv::binary()}
-%%      Method := default | rc4 | des_cfb
+%%      Method := rc4 | des_cfb
 %%      Data := iolist() | binary()
 %% @end
 %%--------------------------------------------------------------------
-decode(#cipher_info{method=default, table={_, DecTable}}=CipherInfo, EncData) ->
-    {CipherInfo, transform(DecTable, EncData)};
 decode(#cipher_info{method=rc4, stream_dec_state=S}=CipherInfo, EncData) ->
     {S1, Data} = crypto:stream_decrypt(S, EncData),
     {CipherInfo#cipher_info{stream_dec_state=S1}, Data};
@@ -87,20 +65,6 @@ decode(#cipher_info{method=des_cfb, key=Key, decode_iv=Iv}=CipherInfo, EncData) 
     Data = crypto:block_decrypt(des_cfb, Key, Iv, EncData),
     NextIv = crypto:next_iv(des_cfb, Data, Iv),
     {CipherInfo#cipher_info{decode_iv=NextIv}, Data}.
-
-%%--------------------------------------------------------------------
-%% @doc
-%% Decode or encode the data with default table ciphe method
-%%
-%% @spec transform(Table, Data) -> Data
-%%      Table := [tuple()]
-%%      Data := iolist() | binary()
-%% @end
-%%--------------------------------------------------------------------
-transform(Table, Data) when is_binary(Data)->
-    << <<(element(X+1, Table))>> || <<X>> <= Data >>;
-transform(Table, Data) when is_list(Data) ->
-    [ element(X+1, Table) || X <- Data ].
 
 %%--------------------------------------------------------------------
 %% @doc 

@@ -27,7 +27,7 @@ start() ->
 start(_StartType, _StartArgs) ->
     CipherInfo =
         shadowsocks_crypt:init_cipher_info(
-          get_app_env(method, default), get_app_env(password, "123456")),
+          get_app_env(method, rc4), get_app_env(password, "123456")),
     Args = case get_app_env(type, local) of
                local -> 
                    [local, get_app_env(local_port, 1080), 

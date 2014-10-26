@@ -12,3 +12,7 @@ start_local: ebin/shadowsocks.app
 
 start_server: ebin/shadowsocks.app
 	erl -smp auto -config ./remote.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached
+
+test:
+	killall beam.smp
+	make start_local start_server
