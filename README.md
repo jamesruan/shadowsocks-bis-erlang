@@ -10,7 +10,7 @@ Usage
 
     `./rebar clean & ./rebar compile`
 
-  Elang OTP(R16B01) and rebar are needed. crypto module in OTP improved a lot in R16B01, but unfortunately, the port which implement this module does not use EVP_* functions. Which means almost all the block cipher method is not compatible with other shadowsocks implementation. 
+  Elang OTP(R16B01) and rebar are needed. crypto module in OTP improved a lot in R16B01, but unfortunately, the port which implement this module does not use `EVP_*` functions. Which means almost all the block cipher method is not compatible with other shadowsocks implementation. 
   default and rc4 method works fine.
   
 * Client side
@@ -18,7 +18,7 @@ Usage
     `erl -smp auto -config ./local.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached`
 * Server side
    
-   `erl -smp auto -config ./remote.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached`
+    `erl -smp auto -config ./remote.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached`
 
 Configuration
 -----------
@@ -47,7 +47,7 @@ in `log/shadowsocks_client.log`. If you don't want it, use `{error_logger, silen
 TODOs
 -----------
 * Check IPv6
-* anthor crypto module which port(in C) uses EVP_* interfaces.
+* anthor crypto module which port(in C) uses `EVP_*` interfaces.
 
 License
 -----------
