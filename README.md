@@ -1,8 +1,9 @@
-shadowsocks-erlang
+shadowsocks-bis-erlang
 ===========
-Totally asynchronous implementation of Shadowsocks in Erlang.
 
-Original python version: https://github.com/clowwindy/shadowsocks
+This is a 'bis' version of original [shadowsocks](https://github.com/clowwindy/shadowsocks) in Erlang implementation [shadowsocks-erlang](https://github.com/Yongke/shadowsocks-erlang).
+
+Thanks to the original designer of shadowsocks: clowwindy, and the Erlang implementation writer Yongke.
 
 Usage
 -----------
@@ -10,8 +11,7 @@ Usage
 
     `./rebar clean & ./rebar compile`
 
-  Elang OTP(R16B01) and rebar are needed. crypto module in OTP improved a lot in R16B01, but unfortunately, the port which implement this module does not use `EVP_*` functions. Which means almost all the block cipher method is not compatible with other shadowsocks implementation. 
-  default and rc4 method works fine.
+  Note: This is not compatible with original Shadowsocks.
   
 * Client side
 
@@ -44,10 +44,14 @@ Configuration
 `{error_logger, {file, "log/shadowsocks_client.log"}}`, logs will be written 
 in `log/shadowsocks_client.log`. If you don't want it, use `{error_logger, silent}` instead
 
+BIS:
+----------
+RC4 stream cipher is implemented with random IV and serve as default cipher.
+
 TODOs
 -----------
 * Check IPv6
-* anthor crypto module which port(in C) uses `EVP_*` interfaces.
+* Add more obfuscation
 
 License
 -----------
