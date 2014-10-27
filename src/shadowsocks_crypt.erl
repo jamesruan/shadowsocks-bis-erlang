@@ -95,6 +95,9 @@ key_iv_len(rc4) ->
 
 stream_init(rc4, Key, Iv) ->
 	Keymix = binary:list_to_bin([U bxor V || {U, V} <- lists:zip(binary:bin_to_list(Key), binary:bin_to_list(Iv))]),
-    crypto:stream_init(rc4, Keymix);
+    S = crypto:stream_init(rc4, Keymix),
+	%discard first 1024 bit against attack of http://en.wikipedia.org/wiki/Fluhrer,_Mantin_and_Shamir_attack
+	{S1, _} = crypto:stream_encrypt( S, <<0:(1024*8)>>),
+	S1;
 stream_init(_, _, _) ->
     undefined.
