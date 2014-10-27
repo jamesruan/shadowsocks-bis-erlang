@@ -8,7 +8,7 @@ Thanks to the original designer of shadowsocks: clowwindy, and the Erlang implem
 Usage
 -----------
 Make sure your have Erlang/OTP in your system, and rebar is needed to.
-* Debian
+* Setup (Debian)
 
     `sudo apt-get install rebar`
 
