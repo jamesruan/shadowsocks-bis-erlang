@@ -15,6 +15,5 @@ start_server: ebin/shadowsocks.app
 
 test:
 	ps -aux |grep beam.smp
-	killall beam.smp
 	make start_local start_server
 	ps -aux |grep beam.smp

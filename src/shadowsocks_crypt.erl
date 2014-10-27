@@ -22,9 +22,7 @@
 %%--------------------------------------------------------------------
 init_cipher_info(Method, Password) ->
     {KeyLen, IvLen} = key_iv_len(Method),
-    {Key, _} = evp_bytestokey(md5, Password, KeyLen, IvLen),
-    %% use another random Iv, but not the one returned from evp_bytestokey()
-    Iv = crypto:rand_bytes(IvLen),
+    {Key, Iv} = evp_bytestokey(md5, Password, KeyLen, IvLen),
     #cipher_info{method=Method, key=Key, encode_iv=Iv, decode_iv=undefined,
                 stream_enc_state = stream_init(Method, Key, Iv),
                 stream_dec_state = stream_init(Method, Key, Iv)}.
@@ -37,13 +35,13 @@ init_cipher_info(Method, Password) ->
 %%      Data := iolist() | binary()
 %% @end
 %%--------------------------------------------------------------------
-encode(#cipher_info{method=rc4, stream_enc_state=S}=CipherInfo, Data) ->
-    {S1, EncData} = crypto:stream_encrypt(S, Data),
-    {CipherInfo#cipher_info{stream_enc_state=S1}, EncData};
 encode(#cipher_info{iv_sent = false, encode_iv=Iv}=CipherInfo, Data) ->
     NewCipherInfo = CipherInfo#cipher_info{iv_sent=true},
     {NewCipherInfo1, EncData} = encode(NewCipherInfo, Data), 
     {NewCipherInfo1, <<Iv/binary, EncData/binary>>};
+encode(#cipher_info{method=rc4, stream_enc_state=S}=CipherInfo, Data) ->
+    {S1, EncData} = crypto:stream_encrypt(S, Data),
+    {CipherInfo#cipher_info{stream_enc_state=S1}, EncData};
 encode(#cipher_info{method=des_cfb, key=Key, encode_iv=Iv}=CipherInfo, Data) ->
     EncData = crypto:block_encrypt(des_cfb, Key, Iv, Data),
     NextIv = crypto:next_iv(des_cfb, EncData, Iv),
@@ -79,10 +77,13 @@ evp_bytestokey(md5, Password, KeyLen, IvLen) ->
     evp_bytestokey_aux(md5, list_to_binary(Password), KeyLen, IvLen, <<>>).
 
 evp_bytestokey_aux(md5, _, KeyLen, IvLen, Acc) 
-  when KeyLen + IvLen =< size(Acc) ->
-    <<Key:KeyLen/binary, Iv:IvLen/binary, _/binary>> = Acc,
+  when KeyLen =< size(Acc) ->
+    <<Key:KeyLen/binary, _/binary>> = Acc,
+	%hashed key and randomized Iv
+	Iv = crypto:rand_bytes(IvLen),
     {Key, Iv};
 evp_bytestokey_aux(md5, Password, KeyLen, IvLen, Acc) ->
+	%accumulate to arbitrary length
     Digest = crypto:hash(md5, <<Acc/binary, Password/binary>>),
     NewAcc = <<Acc/binary, Digest/binary>>,
     evp_bytestokey_aux(md5, Password, KeyLen, IvLen, NewAcc).
@@ -90,9 +91,10 @@ evp_bytestokey_aux(md5, Password, KeyLen, IvLen, Acc) ->
 key_iv_len(des_cfb) ->
     {8, 8};
 key_iv_len(rc4) ->
-    {16, 0}.
+    {16, 16}.
 
-stream_init(rc4, Key, _) ->
-    crypto:stream_init(rc4, Key);
+stream_init(rc4, Key, Iv) ->
+	Keymix = binary:list_to_bin([U bxor V || {U, V} <- lists:zip(binary:bin_to_list(Key), binary:bin_to_list(Iv))]),
+    crypto:stream_init(rc4, Keymix);
 stream_init(_, _, _) ->
     undefined.

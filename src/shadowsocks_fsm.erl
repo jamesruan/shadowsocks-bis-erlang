@@ -169,11 +169,6 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
 
 %% State transfer: WAIT_FOR_IVEC
 %%IVec for decoding comes from the client side
-'WAIT_FOR_IVEC'({client, Data}, #state{type=remote, 
-                                       cipher_info = #cipher_info{method=Method}
-                                      }=State) 
-  when Method =:= rc4 ->
-    ?MODULE:'WAIT_FOR_TARGET_INFO'({client, Data}, State);
 'WAIT_FOR_IVEC'({client, Data}, #state{
                   type=remote,
                   cipher_info=#cipher_info{
@@ -195,11 +190,6 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
             ?MODULE:'WAIT_FOR_TARGET_INFO'({client, Rest}, State1)
     end;
 
-'WAIT_FOR_IVEC'({remote, Data}, #state{type=local, 
-                                       cipher_info = #cipher_info{method=Method}
-                                      }=State) 
-  when Method =:= rc4 ->
-    ?MODULE:'WAIT_FOR_DATA'({remote, Data}, State);
 'WAIT_FOR_IVEC'({client, Data}, #state{
                   type=local, 
                   remote_socket = RemoteSocket,
