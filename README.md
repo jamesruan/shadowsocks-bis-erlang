@@ -48,9 +48,14 @@ BIS:
 ----------
 RC4 stream cipher is implemented with random IV and serve as default cipher.
 
+Features:
+---------
+IPv6 address supported.
+IPv6 domain resolve supported.
+
 TODOs
 -----------
-* Check IPv6
+* UDP support
 * Add more obfuscation
 
 License

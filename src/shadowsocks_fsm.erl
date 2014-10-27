@@ -1,6 +1,6 @@
 %%%-------------------------------------------------------------------
-%%% @author Yongke <wangyongke@gmail.com>
-%%% @copyright (C) 2013, Yongke
+%%% @author Yongke <wangyongke@gmail.com>, James Ruan <ruanbeihong@gmail.com>
+%%% @copyright (C) 2014, Yongke, James Raun
 %%% @doc
 %%% Proxying process, can be running as LOCAL instance or REMOTE instance
 %%% - LOCAL instance provide an socks5 server to CLIENT and comunication 
@@ -138,7 +138,11 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
                          ?SOCKS5_ATYP_DOM ->
                              BinAddr = list_to_binary(Addr),
                              AddrSize = size(BinAddr),
-                             <<?SOCKS5_ATYP_DOM:8, AddrSize:8, BinAddr/binary, Port:16>>
+                             <<?SOCKS5_ATYP_DOM:8, AddrSize:8, BinAddr/binary, Port:16>>;
+                         ?SOCKS5_ATYP_V6 ->
+                             L = tuple_to_list(Addr),
+                             BinAddr = list_to_binary([<<U:1/big-unit:16>> || U <- L]),
+                             <<?SOCKS5_ATYP_V6:8, BinAddr/binary, Port:16>>
                      end,
             gen_tcp:send(S, [Socks5Rsp, Target]),
             %% connect to remote server & send first message (IV included)
@@ -330,9 +334,11 @@ decode_socks5_req(<<Ver:8/big, _/binary>>)
 decode_socks5_req(<<_:8/big, Cmd:8/big, _/binary>>) 
   when Cmd =/= ?SOCKS5_REQ_CONNECT ->
     {error, not_supported_command, Cmd};
-decode_socks5_req(<<?SOCKS5_VER:8/big, ?SOCKS5_REQ_CONNECT:8/big, _:8/big, 
-                    ?SOCKS5_ATYP_V6:8/big, _/binary>>) ->
-    {error, not_supported_ipv6, ?SOCKS5_ATYP_V6};
+decode_socks5_req(<<_:3/binary, AddrType:8/big, _Rest/binary>>) 
+  when AddrType =/= ?SOCKS5_ATYP_V4,
+       AddrType =/= ?SOCKS5_ATYP_DOM,
+       AddrType =/= ?SOCKS5_ATYP_V6 ->
+    {error, not_supported_address_type, AddrType};
 decode_socks5_req(<<?SOCKS5_VER:8/big, ?SOCKS5_REQ_CONNECT:8/big, _:8/big, 
                      ?SOCKS5_ATYP_V4:8/big, 
                      DestAddr:4/binary, DestPort:16/big, Rest/binary>>) ->
@@ -343,18 +349,33 @@ decode_socks5_req(<<?SOCKS5_VER:8/big, ?SOCKS5_REQ_CONNECT:8/big, _:8/big,
                      Domain:DomLen/binary, DestPort:16/big,
                      Rest/binary>>) ->
     {?SOCKS5_VER, ?SOCKS5_ATYP_DOM, binary_to_list(Domain), DestPort, Rest};
+decode_socks5_req(<<?SOCKS5_VER:8/big, ?SOCKS5_REQ_CONNECT:8/big, _:8/big, 
+                     ?SOCKS5_ATYP_V6:8/big, 
+                     _DestAddr: 8/binary-unit:16, DestPort:16/big, Rest/binary>>) ->
+                     DestAddr = [binary:decode_unsigned(U, big) || <<U:1/binary-unit:16>> <= _DestAddr],
+    {?SOCKS5_VER, ?SOCKS5_ATYP_V6, list_to_tuple(DestAddr), 
+     DestPort, Rest};
 decode_socks5_req(_) ->
     incomplete.
 
 decode_target_info(<<AddrType:8/big, _/binary>>) 
-  when AddrType =/= ?SOCKS5_ATYP_V4, AddrType =/= ?SOCKS5_ATYP_DOM->
+  when AddrType =/= ?SOCKS5_ATYP_V4,
+       AddrType =/= ?SOCKS5_ATYP_DOM,
+       AddrType =/= ?SOCKS5_ATYP_V6 ->
     {error, not_supported_address_type, AddrType};
 decode_target_info(<<?SOCKS5_ATYP_V4:8/big, DestAddr:4/binary, DestPort:16/big, 
                      Rest/binary>>) ->
     {list_to_tuple(binary_to_list(DestAddr)), DestPort, Rest};
 decode_target_info(<<?SOCKS5_ATYP_DOM:8/big, DomLen:8/big, Domain:DomLen/binary, 
                      DestPort:16/big, Rest/binary>>) ->
-    {binary_to_list(Domain), DestPort, Rest};
+                     case inet:getaddr(binary_to_list(Domain), inet6) of
+                         {ok, Addr} -> { Addr, DestPort, Rest};
+                         {error, _} -> { binary_to_list(Domain), DestPort, Rest}
+                     end;
+decode_target_info(<<?SOCKS5_ATYP_V6:8/big, _DestAddr:8/binary-unit:16, DestPort:16/big, 
+                     Rest/binary>>) ->
+                     DestAddr = [binary:decode_unsigned(U, big) || <<U:1/binary-unit:16>> <= _DestAddr],
+    {list_to_tuple(DestAddr), DestPort, Rest};
 decode_target_info(_) ->
     incomplete.
 

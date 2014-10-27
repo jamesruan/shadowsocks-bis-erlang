@@ -1,5 +1,5 @@
-%%% @author Yongke <wangyongke@gmail.com>
-%%% @copyright (C) 2013, Yongke
+%%% @author Yongke <wangyongke@gmail.com>, James Ruan <ruanbeihong@gmail.com>
+%%% @copyright (C) 2014, Yongke, James Ruan
 %%% @doc
 %%% APIs for encrypt and decrypt
 %%% @end
