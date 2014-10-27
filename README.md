@@ -9,16 +9,16 @@ Usage
 -----------
 * Compile
 
-    `./rebar clean & ./rebar compile`
+    `make build`
 
   Note: This is not compatible with original Shadowsocks.
   
 * Client side
 
-    `erl -smp auto -config ./local.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached`
+    `make start_client`
 * Server side
    
-    `erl -smp auto -config ./remote.config -pa ./ebin/ -boot start_sasl -s shadowsocks_app start -detached`
+    `make start_server`
 
 Configuration
 -----------
@@ -35,7 +35,7 @@ Configuration
        {server,"localhost"},
        {server_port,8388},
        {password,"barfoo!"},
-       {method,default}
+       {method,rc4}
      ]}
 ```
 
