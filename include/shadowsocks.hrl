@@ -33,7 +33,7 @@
 
 %% cipher info
 -record(cipher_info, {
-          method=default,      %% default | rc4 | aes_128_cfb | bf_cfb | des_cfb
+          method=default,      %% rc4 | aes_128_cfb | bf_cfb | des_cfb
           table = {[], []},    %% table for default method only
           key,
           encode_iv,

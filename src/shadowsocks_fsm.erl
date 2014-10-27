@@ -76,6 +76,9 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
 %% For REMOTE instance: 
 %%  WAIT_FOR_SOCKET -> WAIT_FOR_IVEC -> WAIT_FOR_TARGET_INFO ->
 %%  WAIT_FOR_DATA <-> WAIT_FOR_DATA
+
+
+%% State transfer: WAIT_FOR_SOCKET
 'WAIT_FOR_SOCKET'({socket_ready, Socket}, #state{type=local}=State) 
   when is_port(Socket) ->
     inet:setopts(Socket, [{active, once}, {packet, raw}, binary]),
@@ -93,6 +96,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
     %% Allow to receive async messages
     {next_state, 'WAIT_FOR_SOCKET', State}.
 
+%% State transfer: WAIT_FOR_SOCKS5_AUTH
 'WAIT_FOR_SOCKS5_AUTH'({client, Data}, #state{
                          type=local, client_socket=S} = State) ->
     Buffer = <<(State#state.buff)/binary, Data/binary>>,
@@ -113,6 +117,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
            [Addr]),
     {stop, normal, State}.
 
+%% State transfer: WAIT_FOR_SOCKS5_REQUEST
 'WAIT_FOR_SOCKS5_REQUEST'({client, Data}, #state{
                             type=local,
                             client_socket=S, remote_addr=RemoteAddr,
@@ -136,7 +141,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
                              <<?SOCKS5_ATYP_DOM:8, AddrSize:8, BinAddr/binary, Port:16>>
                      end,
             gen_tcp:send(S, [Socks5Rsp, Target]),
-            %% connect to remote server & send first message
+            %% connect to remote server & send first message (IV included)
             {NewCipherInfo, EncodedTargert} = 
                 shadowsocks_crypt:encode(CipherInfo, Target),
             case gen_tcp:connect(RemoteAddr, RemotePort, [{active, once}, 
@@ -158,11 +163,12 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
             {stop, Error, State}            
     end;
 'WAIT_FOR_SOCKS5_REQUEST'(timeout, #state{client_addr=Addr}=State) ->
-    ?ERROR("Client connection timeout: 'WAIT_FOR_SOCKS5_AUTH', ~p\n", 
+    ?ERROR("Client connection timeout: 'WAIT_FOR_SOCKS5_REQUEST', ~p\n", 
            [Addr]),
     {stop, normal, State}.
 
-%%IVec for decoding comes from the other side
+%% State transfer: WAIT_FOR_IVEC
+%%IVec for decoding comes from the client side
 'WAIT_FOR_IVEC'({client, Data}, #state{type=remote, 
                                        cipher_info = #cipher_info{method=Method}
                                       }=State) 
@@ -171,7 +177,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
 'WAIT_FOR_IVEC'({client, Data}, #state{
                   type=remote,
                   cipher_info=#cipher_info{
-                    method=Method,key=Key, decode_iv=undefined}=CipherInfo}
+                    method=Method, key=Key, decode_iv=undefined}=CipherInfo}
                 = State) ->
     Buffer = <<(State#state.buff)/binary, Data/binary>>,
     {_, IvLen} = shadowsocks_crypt:key_iv_len(Method),
@@ -204,7 +210,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
     {next_state, 'WAIT_FOR_IVEC', State#state{cipher_info=NewCipherInfo}};
 'WAIT_FOR_IVEC'({remote, Data}, #state{
                   type=local,
-                  cipher_info=#cipher_info{method=Method,key=Key,decode_iv=undefined}
+                  cipher_info=#cipher_info{method=Method, key=Key, decode_iv=undefined}
                   =CipherInfo} = State) ->
     Buffer = <<(State#state.buff)/binary, Data/binary>>,
     {_, IvLen} = shadowsocks_crypt:key_iv_len(Method),
@@ -221,6 +227,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
             ?MODULE:'WAIT_FOR_DATA'({remote, Rest}, State1)
     end.
 
+%% State transfer: WAIT_FOR_TARGET_INFO
 'WAIT_FOR_TARGET_INFO'({client, Data}, #state{type=remote,
                                               buff = Buff,
                                               cipher_info=CipherInfo}=State) ->
@@ -250,6 +257,7 @@ init([remote, _, #cipher_info{}=CipherInfo]) ->
             end
     end.
 
+%% State transfer: WAIT_FOR_DATA
 'WAIT_FOR_DATA'({client, Data}, #state{type=local, 
                                        remote_socket=RemoteSocket, 
                                        cipher_info=CipherInfo} = State) ->
