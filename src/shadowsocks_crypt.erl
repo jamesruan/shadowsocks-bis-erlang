@@ -80,7 +80,7 @@ evp_bytestokey_aux(md5, _, KeyLen, IvLen, Acc)
   when KeyLen =< size(Acc) ->
     <<Key:KeyLen/binary, _/binary>> = Acc,
 	%hashed key and randomized Iv
-	Iv = crypto:rand_bytes(IvLen),
+	Iv = crypto:strong_rand_bytes(IvLen),
     {Key, Iv};
 evp_bytestokey_aux(md5, Password, KeyLen, IvLen, Acc) ->
 	%accumulate to arbitrary length
