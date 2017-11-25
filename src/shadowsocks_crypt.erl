@@ -91,7 +91,9 @@ evp_bytestokey_aux(md5, Password, KeyLen, IvLen, Acc) ->
 key_iv_len(des_cfb) ->
     {8, 8};
 key_iv_len(rc4) ->
-    {16, 16}.
+    {16, 16};
+key_iv_len(default) ->
+    key_iv_len(rc4).
 
 stream_init(rc4, Key, Iv) ->
 	Keymix = binary:list_to_bin([U bxor V || {U, V} <- lists:zip(binary:bin_to_list(Key), binary:bin_to_list(Iv))]),

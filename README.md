@@ -8,22 +8,15 @@ Thanks to the original designer of shadowsocks: clowwindy, and the Erlang implem
 Usage
 -----------
 Make sure your have Erlang/OTP in your system, and rebar is needed to.
-* Setup (Debian)
 
-    `sudo apt-get install rebar`
+Make release:
 
-* Compile
+First edit `config/local.config` and `config/remote.config`, then
 
-    `make build`
+    rebar3 release -n sslocal
+    rebar3 release -n ssremote
 
-  Note: This is not compatible with original Shadowsocks.
-  
-* Client side
-
-    `make start_client`
-* Server side
-   
-    `make start_server`
+    _build/default/rel/sslocal/bin/sslocal start
 
 Configuration
 -----------
@@ -46,12 +39,10 @@ Configuration
 
 `{type, local}` is for client, `{type, remote}` is for server side.
 
-`{error_logger, {file, "log/shadowsocks_client.log"}}`, logs will be written 
-in `log/shadowsocks_client.log`. If you don't want it, use `{error_logger, silent}` instead
-
 BIS:
 ----------
 RC4 stream cipher is implemented with random IV and serve as default cipher.
+Upgrade to use Rebar3.
 
 Features:
 ---------
