@@ -22,7 +22,7 @@
 %%%===================================================================
 start_link([_, ListeningPort | _] = Args) ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, 
-                          [ListeningPort, shadowsocks_fsm, Args]).
+                          [ListeningPort, shadowsocks_statem, Args]).
 
 %%%===================================================================
 %%% Supervisor callbacks

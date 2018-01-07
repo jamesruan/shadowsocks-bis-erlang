@@ -42,11 +42,3 @@
           stream_enc_state,    %% used in AES CTR and RC4 mode
           stream_dec_state     %% used in AES CTR and RC4 mode
          }).
--record(lstate, {
-          socket_client,
-          socket_remote,
-          client_addr,   %{host, port}
-          remote_addr,   %{host, port}
-          cipher_info,   %#cipher_info{}
-          buf = <<>>
-         }).
